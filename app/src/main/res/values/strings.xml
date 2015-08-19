@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">EricSalinger2048</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_new_game">New Game</string>
+    <string name="game_over_man">There are no moves. Please hit the reset button in the menu to start a new game. Thanks for playing.</string>
+    <string name="victory">Congratulations. You made it to 2048. Now try to make it to 4096.</string>
+</resources>
