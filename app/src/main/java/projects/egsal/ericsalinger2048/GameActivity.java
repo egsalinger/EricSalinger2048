@@ -17,6 +17,11 @@ public class GameActivity extends AppCompatActivity{
     private GameLogic backend;
     private GameAdapter adapter;
 
+    public static final int DIRECTION_LEFT = 0;
+    public static final int DIRECTION_UP = 1;
+    public static final int DIRECTION_RIGHT = 2;
+    public static final int DIRECTION_DOWN = 3;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,7 +73,7 @@ public class GameActivity extends AppCompatActivity{
 
     public void moveUp (View v)
     {
-        if (backend.moveUp())
+        if (backend.moveWithDirection(DIRECTION_UP))
         {
             finishRound();
         }
@@ -77,7 +82,7 @@ public class GameActivity extends AppCompatActivity{
 
     public void moveDown (View v)
     {
-        if (backend.moveDown())
+        if (backend.moveWithDirection(DIRECTION_DOWN))
         {
             finishRound();
         }
@@ -86,7 +91,7 @@ public class GameActivity extends AppCompatActivity{
 
     public void moveLeft (View v)
     {
-        if (backend.moveLeft())
+        if (backend.moveWithDirection(DIRECTION_LEFT))
         {
             finishRound();
         }
@@ -95,7 +100,7 @@ public class GameActivity extends AppCompatActivity{
 
     public void moveRight (View v)
     {
-        if (backend.moveRight())
+        if (backend.moveWithDirection(DIRECTION_RIGHT))
         {
             finishRound();
         }

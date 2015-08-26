@@ -65,48 +65,104 @@ public class GameLogic {
         }
     }
 
-    public boolean moveDown()
+    public boolean moveWithDirection (int rotations)
     {
-        // only add extra tiles if we can move
-        boolean canMove = false;
-        for (int from = 0; from < BoardWidth; from++)
+        boolean moved = false;
+        // calculate positions based on location.
+        for (int i = 0; i < BoardWidth*BoardHeight; i += BoardWidth)
         {
-            // Given a StartIndex
-            // A column is the array (el) defined by
-            // (i = 0; i < BoardHeight; i++)
-            // el [i] = i*BoardWidth+StartIndex
-            int to = from+((BoardHeight-1)*BoardWidth);
-            // if we haven't moved, this condition is true.
-            // if we haven't moved and we do move, moveRowDown returns true.
-            // therefore canMove will be true iff at least one row column moved
-            if (!canMove)
+            int lastValue = -1;
+            int lastOccupiedIndex = i;
+            int lastEmpty = i + BoardWidth;
+            for (int k = 0; k < BoardWidth; k++)
             {
-                canMove = move(from, (from+3*BoardHeight), VERTICAL);
+                int index = i + k;
+                int value = getValueWithRotation(index, rotations);
+
+                // if value != 0
+                if (value != 0) {
+                    if (lastValue == value) {
+                        moved = true;
+                        value = value *2;
+                        setIndexWithRotation(lastOccupiedIndex, rotations, value);
+                        setIndexWithRotation(index, rotations, 0);
+                        if (value > highScore)
+                        {
+                            highScore = value;
+                        }
+                        lastValue = -1;
+                        lastEmpty = lastOccupiedIndex + 1;
+                        lastOccupiedIndex = i+ BoardWidth;
+                    } else if (lastEmpty < index) {
+                        setIndexWithRotation(lastEmpty, rotations, value);
+                        setIndexWithRotation(index, rotations, 0);
+                        lastOccupiedIndex = lastEmpty;
+                        lastEmpty += 1;
+                        lastValue = value;
+                        moved = true;
+                    } else if (lastOccupiedIndex <= index) {
+                        lastOccupiedIndex = index;
+                        lastValue = value;
+                    }
+                }
+                else {
+                    if (lastEmpty > index) {
+                        lastEmpty = index;
+                    }
+                }
             }
-            else
-                move(from, from+3*BoardHeight, VERTICAL);
         }
-        return canMove;
+
+
+
+
+        return moved;
     }
 
-    public boolean moveUp()
-    { // only add extra tiles if we can move
-        boolean canMove = false;
-        for (int to = 0; to < BoardWidth; to++)
-        {
-            // if we haven't moved, this condition is true.
-            // if we haven't moved and we do move, moveRowDown returns true.
-            // therefore canMove will be true iff at least one row column moved
-            int from = to+ (BoardHeight-1)*BoardHeight;
-
-            if (!canMove)
-            {
-                canMove = move(from, to, VERTICAL);
-            }
-            else
-                move(from, to, VERTICAL);
+    private void setIndexWithRotation(int indexToRotate, int rotations, int value) {
+        int realIndex = getIndexWithRotation(indexToRotate, rotations);
+        if (value == 0)
+            newBoard.remove(realIndex);
+        else {
+            newBoard.put(realIndex, value);
         }
-        return canMove;
+    }
+
+    private int getIndexWithRotation(int indexToRotate, int rotations) {
+
+        int row1 = indexToRotate / BoardWidth;
+        int col1 = indexToRotate % BoardWidth;
+
+        // Sanity checking here -- only 4 directions we can rotate.
+        rotations = rotations %4;
+
+
+        for (int i = 0; i < rotations; i++)
+        {
+            // row2, col2, are rotated row1, col1.
+            int row2 = col1;
+            int col2 = (BoardWidth-1) - row1;
+
+            //reset for next step
+            row1 = row2;
+            col1 = col2;
+        }
+
+
+        return row1*BoardWidth+col1;
+    }
+
+    private int getValueWithRotation (int indexToRotate, int rotations)
+    {
+        int rotatedIndex = getIndexWithRotation(indexToRotate, rotations);
+        if (newBoard.containsKey(rotatedIndex))
+        {
+            return newBoard.get(rotatedIndex);
+        }
+        else
+        {
+            return 0;
+        }
     }
 
     public boolean hasNextMove()
@@ -144,245 +200,6 @@ public class GameLogic {
         return false;
     }
 
-    public boolean moveLeft()
-    { // only add extra tiles if we can move
-        boolean canMove = false;
-        for (int i = 0; i < BoardHeight; i++)
-        {
-            int to = i*BoardWidth;
-            // if we haven't moved, this condition is true.
-            // if we haven't moved and we do move, moveRowDown returns true.
-            // therefore canMove will be true iff at least one row column moved
-            int from = to + BoardWidth-1;
-
-            if (!canMove)
-            {
-                canMove = move(from, to, HORIZONTAL);
-            }
-            else
-                move(from, to, HORIZONTAL);
-        }
-        return canMove;
-    }
-
-    public boolean moveRight()
-    {
-    // only add extra tiles if we can move
-        boolean canMove = false;
-        for (int i = 0; i < BoardHeight; i++)
-        {
-            int from = i*BoardWidth;
-            // if we haven't moved, this condition is true.
-            // if we haven't moved and we do move, moveRowDown returns true.
-            // therefore canMove will be true iff at least one row column moved
-            int to = from + (BoardWidth-1);
-
-            if (!canMove)
-            {
-                canMove = move(from, to, HORIZONTAL);
-            }
-            else
-                move(from, to, HORIZONTAL);
-        }
-        return canMove;
-    }
-
-
-    private boolean move (int from, int to, int dir)
-    {
-        // if from is before to
-        if (from > to){
-            return moveNegative (from, to, dir);
-        }
-        else {
-           return movePositive(from, to, dir);
-        }
-    }
-
-    /**
-     * This is split into two methods, for moving in the positive and negative directions respectively
-     * @param from where we're moving from
-     * @param to where we're moving to
-     * @param dir the direction/amount
-     * @return true if something actually moved, false otherwise.
-     */
-
-    private boolean moveNegative (int from, int to, int dir)
-    {
-        // from > to
-        boolean didMove = false;
-        int lastIndex = from+1;
-        int lastValue = -1;
-        int lastFree = from+1;
-
-        // for each element past our destination at currentIndex
-        for (int currentIndex = to; currentIndex <= from ; currentIndex += dir)
-        {
-            int value = 0;
-            // if the board contains you as a key
-            if (newBoard.containsKey(currentIndex))
-            {
-                // if we haven't seen a number in the row
-                value = newBoard.get(currentIndex);
-                // if we haven't seen a number in the row we could add to
-                if (lastValue == -1)
-                {
-                    // set the last index and value
-                    lastIndex = currentIndex;
-                    lastValue = value;
-                    // if we can move, we also need to move..
-                    if (lastFree < currentIndex)
-                    {
-                        lastIndex = lastFree;
-                        lastFree = lastIndex + dir;
-                        didMove = true;
-                        // Update the board
-                        newBoard.remove(currentIndex);
-                        newBoard.put(lastIndex, value);
-                    }
-                }
-                // if we have seen a number in the row, and they match
-                else if (lastValue == value)
-                {
-                    // increment the value
-                    lastValue+= value;
-                    // put the new value into the board at the previous index.
-                    newBoard.put(lastIndex, lastValue);
-                    // remove the current value from the board.
-                    newBoard.remove(currentIndex);
-                    // perform some cleanup
-                    lastFree = lastIndex + dir;
-                    lastIndex = from+1;
-                    lastValue = -1;
-                    didMove = true;
-                    // Goal-checking calculation.
-                    if (lastValue > highScore)
-                        highScore = lastValue;
-                }
-                // If there's no match, but we have at least one free space;
-                else if (lastFree < currentIndex ) {
-                    newBoard.put(lastFree, newBoard.get(currentIndex));
-                    newBoard.remove(currentIndex);
-                    // modify where the number is.
-                    lastIndex = lastFree;
-                    // modify what the number is
-                    lastValue = value;
-                    // we move the tile as far in our direction as we can, so the last free
-                    // space is the location of the last tile minus 1 in that direction.
-                    lastFree = lastIndex + dir;
-                    didMove = true;
-                }
-                // if there's no match, we need to do some updates
-                else
-                {
-                    lastValue = value;
-                    lastIndex = currentIndex;
-                }
-
-            }
-            // The current cell is empty
-            else
-            {
-                // and we don't have a lastFree item...
-                // we do now.
-                if (lastFree > currentIndex)
-                {
-                    lastFree = currentIndex;
-                }
-
-            }
-        }
-        return didMove;
-    }
-
-
-    private boolean movePositive (int from, int to, int dir)
-    {
-        // to > from
-        boolean didMove = false;
-        int lastIndex = -1;
-        int lastValue = -1;
-        int lastFree = -1;
-
-        // for each element past our destination at currentIndex
-        for (int currentIndex = to; currentIndex >= from; currentIndex -= dir)
-        {
-            int value = 0;
-            // if the board contains you as a key
-            if (newBoard.containsKey(currentIndex))
-            {
-                value = newBoard.get(currentIndex);
-                // if we haven't seen a number in the row we could add to
-                if (lastValue == -1)
-                {
-                    // set the last index and value
-                    lastIndex = currentIndex;
-                    lastValue = value;
-                    // if we can move, we also need to move..
-                    if (lastFree > currentIndex)
-                    {
-                        lastIndex = lastFree;
-                        lastFree = lastIndex - dir;
-                        didMove = true;
-                        // Update the board
-                        newBoard.remove(currentIndex);
-                        newBoard.put(lastIndex, value);
-                    }
-                }
-                // if we have seen a number in the row, and they match
-                else if (lastValue == value)
-                {
-                    // increment the value
-                    lastValue+= value;
-                    // put the new value into the board at the previous index.
-                    newBoard.put(lastIndex, lastValue);
-                    // remove the current value from the board.
-                    newBoard.remove(currentIndex);
-                    // perform some cleanup
-                    lastFree = lastIndex - dir;
-                    lastIndex = -1;
-                    lastValue = -1;
-                    didMove = true;
-
-                    //afterthought scoring calculation
-                    if (lastValue > highScore)
-                        highScore = lastValue;
-                }
-                // If there's no match, but we have at least one free space;
-                else if (lastFree > currentIndex ) {
-                    newBoard.put(lastFree, newBoard.get(currentIndex));
-                    newBoard.remove(currentIndex);
-                    // modify where the number is.
-                    lastIndex = lastFree;
-                    // modify what the number is
-                    lastValue = value;
-                    // we move the tile as far in our direction as we can, so the last free
-                    // space is the location of the last tile minus 1 in that direction.
-                    lastFree = lastIndex - dir;
-                    didMove = true;
-                }
-                // if there's no match, we need to do some updates
-                else
-                {
-                    lastValue = value;
-                    lastIndex = currentIndex;
-                }
-
-            }
-            // The current cell is empty
-            else
-            {
-                // and we don't have a lastFree item...
-                // we do now.
-                if (lastFree < currentIndex)
-                {
-                    lastFree = currentIndex;
-                }
-
-            }
-        }
-        return didMove;
-    }
 
 
 
